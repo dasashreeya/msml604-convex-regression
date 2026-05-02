@@ -9,3 +9,5 @@ build/
 *.log
 experiments/plots/
 .claude/
+notebooks/.ipynb_checkpoints/
+
