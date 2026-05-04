@@ -1,18 +1,37 @@
 """
-Validation tests comparing custom ISTA/FISTA solvers against sklearn.
+Correctness and convergence validation suite for the ISTA/FISTA solver library.
 
-Checks:
-  np.allclose(my_solver.coef_, sklearn.coef_, atol=1e-3)
+This test module serves two purposes:
 
-Datasets tested:
-  1. Small well-conditioned (n=100, p=10)
-  2. High-correlation (n=200, p=50)
-  3. High-dimensional (n=100, p=500)
-  4. Near-singular (n=200, p=50)
+1. **Numerical correctness** — Compares the solver outputs against reference
+   implementations from scikit-learn (Ridge, Lasso, ElasticNet) across four
+   dataset configurations, asserting max coefficient deviation < 1e-2.
+   Regularization parameters are converted to match each library's convention.
 
-Prints a results table and asserts correctness.
-Also asserts FISTA converges in fewer iterations than ISTA on all 3
-synthetic stress-test datasets (a regression in Nesterov momentum = a bug).
+2. **Algorithmic properties** — Verifies structural guarantees that must hold
+   for any correct proximal gradient implementation:
+     - Proximal operators match analytical closed-form solutions.
+     - Fenchel duality gaps are non-negative and monotonically non-increasing.
+     - Large-λ shrinkage drives all coefficients to zero.
+     - Ridge with λ → 0 recovers the OLS solution.
+     - Lasso recovers the correct sparse support on the high-dimensional dataset.
+     - FISTA converges in strictly fewer iterations than ISTA on all three
+       synthetic stress-test datasets (a violation would indicate a bug in the
+       momentum update).
+     - FISTA output is deterministic across repeated calls.
+
+Datasets tested
+---------------
+  1. Small well-conditioned  (n=100, p=10)
+  2. High-correlation        (n=200, p=50,  ρ≈0.95)
+  3. High-dimensional        (n=100, p=500, sparsity=10)
+  4. Near-singular           (n=200, p=50,  condition number=10⁶)
+
+sklearn parameter mapping
+-------------------------
+  Ridge:      sklearn α = 2 n λ         (our 1/(2n) data-fit vs sklearn's 1/2)
+  Lasso:      sklearn α = λ             (identical 1/(2n) convention)
+  ElasticNet: sklearn α = λ₁ + λ₂·... (see inline comments for full derivation)
 """
 
 import sys

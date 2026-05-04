@@ -1,10 +1,27 @@
 """
-FISTA (Fast ISTA) with Nesterov momentum for regularized regression.
+FISTA (Fast Iterative Shrinkage-Thresholding Algorithm) for regularized regression.
 
-Achieves O(1/k²) convergence vs ISTA's O(1/k) by using the momentum update:
-    t_{k+1} = (1 + sqrt(1 + 4*t_k²)) / 2
-    y_k = β_k + ((t_{k-1} - 1) / t_k) * (β_k - β_{k-1})
-    β_{k+1} = prox(y_k - (1/L) ∇L(y_k))
+Extends ISTA with Nesterov's momentum extrapolation to achieve the optimal
+O(1/k²) convergence rate for smooth + non-smooth composite objectives, compared
+to O(1/k) for plain proximal gradient descent (ISTA).
+
+The momentum sequence and extrapolation step are
+
+    t_{k+1} = (1 + sqrt(1 + 4 t_k²)) / 2
+    y_k     = β_k + ((t_{k−1} − 1) / t_k) · (β_k − β_{k−1})
+    β_{k+1} = prox_{(1/L)·λΩ}( y_k − (1/L) ∇f(y_k) )
+
+The proximal step is evaluated at the extrapolated point y_k rather than the
+current iterate β_k.  All other details (proximal operators, line search,
+convergence criteria, and parameter interface) are inherited from ISTA.
+
+References
+----------
+Beck, A. and Teboulle, M. (2009). A Fast Iterative Shrinkage-Thresholding
+  Algorithm for Linear Inverse Problems. SIAM Journal on Imaging Sciences,
+  2(1), 183–202.
+Nesterov, Y. (1983). A method of solving a convex programming problem with
+  convergence rate O(1/k²). Soviet Mathematics Doklady, 27(2), 372–376.
 """
 
 import numpy as np

@@ -1,8 +1,27 @@
 """
-Fenchel duality gaps for Lasso and Elastic Net.
+Fenchel duality gap certificates for Lasso and Elastic Net regression.
 
-Primal objectives use the form F(beta) = (1/2n)||y - X*beta||^2 + lam*Omega(beta).
-The gap provides a certificate of suboptimality: gap >= 0, and gap=0 at optimum.
+The duality gap provides a rigorous, computable upper bound on the suboptimality
+of any primal iterate β:
+
+    gap(β) = P(β) − D(θ(β)) ≥ F(β) − F(β*)  ≥  0
+
+where P is the primal objective, D is the Fenchel-Rockafellar dual objective,
+and θ(β) is a dual feasible point constructed from the primal residual
+r = y − Xβ.  The gap equals zero if and only if β is primal optimal (strong
+duality holds for both the Lasso and Elastic Net under mild conditions).
+
+Using the duality gap as a stopping criterion avoids over-solving while
+providing a certified tolerance on the objective value — unlike gradient-norm
+or coefficient-change criteria, which only indirectly bound optimality.
+
+References
+----------
+Mairal, J. (2010). Sparse Coding for Machine Learning, Image Processing and
+  Computer Vision. PhD thesis, ENS Cachan.
+El Ghaoui, L., Viallon, V. and Rabbani, T. (2012). Safe Feature Elimination
+  for the Lasso and Sparse Supervised Learning Problems. Pacific Journal of
+  Optimization, 8(4), 667–698.
 """
 
 import numpy as np

@@ -1,140 +1,155 @@
-# Regularized Regression Solver Library
+# Solver Library: ISTA and FISTA for Regularized Regression
 
-Proximal gradient solvers (ISTA and FISTA) for Ridge, Lasso, and Elastic Net regression.
-
-## Objective Function
-
-All solvers minimize:
+From-scratch implementations of proximal gradient descent (ISTA) and its
+Nesterov-accelerated variant (FISTA) for Ridge, Lasso, and Elastic Net
+regression.  All solvers minimize the composite convex objective
 
 ```
-F(beta) = (1/2n) * ||y - X*beta||^2 + lambda * Omega(beta)
+F(β) = (1/2n) ‖y − Xβ‖²  +  λ Ω(β)
 ```
 
-- `n`: number of observations (rows of X)
-- `p`: number of features (columns of X)
-- `r = y - X*beta`: residuals
-- `L = sigma_max(X^T X) / n`: initial Lipschitz constant of the gradient
+where `n` is the number of observations, `p` is the number of features, and
+`Ω` is the chosen regularizer.  The gradient of the smooth data-fit term is
 
-Gradient of smooth part: `∇L(beta) = -(1/n) * X^T * (y - X*beta)`
+```
+∇f(β) = −(1/n) Xᵀ(y − Xβ)
+```
+
+with Lipschitz constant `L = σ_max(XᵀX) / n`.
 
 ---
 
 ## Proximal Operators (`proximal.py`)
 
-The proximal operator for regularizer `g` with step size `t = 1/L` is:
+Each proximal operator solves the subproblem
 
 ```
-prox_{t*g}(v) = argmin_u { (1/2)||u - v||^2 + t * g(u) }
+prox_{t·g}(v) = argmin_u { (1/2)‖u − v‖²  +  t · g(u) }
 ```
+
+analytically, enabling exact gradient steps without any inner optimization loop.
 
 ### Ridge (L2)
 
 ```
-g(beta) = lambda * ||beta||^2
-prox_{t*g}(v) = v / (1 + 2*t*lambda)
+g(β) = λ ‖β‖²
+prox_{t·g}(v) = v / (1 + 2t λ)
 ```
 
-**Implementation note**: `prox_ridge(v, lam, n)` returns `v / (1 + 2*n*lam)`.
-The `n` factor encodes the convention that callers pass `lam * step / n`, so the
-effective scaling `2 * n * (lam * step / n) = 2 * lam * step` is correct.
-This keeps the public interface uniform: all solvers accept the objective-level `lambda`.
+**Implementation note**: `prox_ridge(v, lam, n)` returns `v / (1 + 2·n·lam)`.
+The caller passes `lam * step / n` so the effective denominator `1 + 2·n·(lam·step/n)
+= 1 + 2·lam·step` is correct.  This keeps the public interface uniform across
+all three regularizers.
 
 ### Lasso (L1) — Soft Thresholding
 
 ```
-g(beta) = lambda * ||beta||_1
-prox_{t*g}(v)_j = sign(v_j) * max(|v_j| - t*lambda, 0)
+g(β) = λ ‖β‖₁
+prox_{t·g}(v)_j = sign(v_j) · max(|v_j| − tλ, 0)
 ```
 
-This is the elementwise soft-thresholding operator.
+The elementwise soft-thresholding operator.
 
 ### Elastic Net (L1 + L2)
 
 ```
-g(beta) = lambda1 * ||beta||_1 + lambda2 * ||beta||^2
-prox_{t*g}(v) = soft_threshold(v, t*lambda1) / (1 + 2*t*lambda2)
+g(β) = λ₁ ‖β‖₁  +  λ₂ ‖β‖²
+prox_{t·g}(v) = soft_threshold(v, t λ₁) / (1 + 2t λ₂)
 ```
 
-The L1 and L2 proximal operators compose exactly in this separable form.
+The L1 and L2 proximal operators compose exactly in this separable form because
+the L2 part is strictly smooth and the L1 part acts element-wise independently.
 
 ---
 
-## Duality Gaps (`duality_gap.py`)
+## Duality Gap Certificates (`duality_gap.py`)
 
-The duality gap provides an *exact, certificate* of sub-optimality: `gap >= 0` always,
-and `gap = 0` at the optimum (under strong duality).
+The Fenchel duality gap provides a computable, exact certificate of sub-optimality:
+
+```
+gap(β) = P(β) − D(θ(β))  ≥  F(β) − F(β*)  ≥  0
+```
+
+`gap = 0` if and only if `β = β*` (strong duality holds for both objectives).
 
 ### Lasso Duality Gap
 
-**Primal**: `P(beta) = (1/2n)||y-X*beta||^2 + lambda*||beta||_1`
+**Primal**: `P(β) = (1/2n) ‖y − Xβ‖²  +  λ ‖β‖₁`
 
-**Dual variable** (project residuals to feasibility):
+**Dual variable** (project residual `r = y − Xβ` to feasibility):
 ```
-theta = r / (n * max(1, ||X^T r||_inf / (n*lambda)))
+θ = r / (n · max(1, ‖Xᵀr‖∞ / (nλ)))
 ```
-where `r = y - X*beta`. This ensures `||X^T theta||_inf <= lambda`.
+This ensures the dual constraint `‖Xᵀθ‖∞ ≤ λ`.
 
 **Dual objective**:
 ```
-D(theta) = (1/2n)||y||^2 - (1/(2n))||y - n*theta||^2
+D(θ) = (1/2n) ‖y‖² − (1/2n) ‖y − nθ‖²
 ```
-
-**Gap** = P(beta) - D(theta) >= 0.
 
 ### Elastic Net Duality Gap
 
-**Primal**: `P(beta) = (1/2n)||y-X*beta||^2 + lambda1*||beta||_1 + lambda2*||beta||^2`
+**Primal**: `P(β) = (1/2n) ‖y − Xβ‖²  +  λ₁ ‖β‖₁  +  λ₂ ‖β‖²`
 
-Uses Fenchel-Rockafellar duality. The conjugate of the regularizer:
+Uses Fenchel–Rockafellar duality.  Conjugate of the regularizer (for λ₂ > 0):
 ```
-g*(v) = sum_j max(|v_j| - lambda1, 0)^2 / (4*lambda2)
+g*(v) = Σ_j  max(|v_j| − λ₁, 0)² / (4λ₂)
 ```
 
-**Dual variable** (no projection needed since `g*` is always finite for `lambda2 > 0`):
+**Dual variable** (no projection needed since `g*` is everywhere finite):
 ```
-theta = r / n
+θ = r / n
 ```
 
 **Dual objective**:
 ```
-D(theta) = y^T theta - (n/2)||theta||^2 - sum_j max(|X^T theta_j| - lambda1, 0)^2 / (4*lambda2)
+D(θ) = yᵀθ − (n/2) ‖θ‖²  −  g*(Xᵀθ)
 ```
 
-**Correctness at optimum**: KKT gives `X^T r* / n = lambda1 * s* + 2*lambda2 * beta*`, so:
-`g*(X^T theta*) = lambda2 * ||beta*||^2` and `P(beta*) - D(theta*) = 0` (verified by substitution).
+**Correctness at optimum**: KKT gives `Xᵀr*/n = λ₁ s* + 2λ₂ β*`, so
+`g*(Xᵀθ*) = λ₂ ‖β*‖²` and `P(β*) − D(θ*) = 0` (verified by substitution).
 
 ---
 
 ## Algorithms
 
-### ISTA
+### ISTA (O(1/k) convergence)
 
-Proximal gradient descent:
-```
-1. grad = -(1/n) * X^T * (y - X*beta)
-2. v = beta - (1/L) * grad
-3. beta_new = prox_{(1/L)*g}(v)
-```
-Convergence rate: O(1/k) in objective gap.
+Standard proximal gradient descent:
 
-### FISTA
+```
+1.  grad  = −(1/n) Xᵀ(y − Xβ_k)
+2.  v     = β_k − (1/L) · grad
+3.  β_{k+1} = prox_{(1/L)·λΩ}(v)
+```
 
-Nesterov momentum acceleration:
-```
-t_new = (1 + sqrt(1 + 4*t^2)) / 2
-y_k = beta + ((t_old - 1) / t_new) * (beta - beta_prev)
-grad = -(1/n) * X^T * (y - X*y_k)
-beta_new = prox_{(1/L)*g}(y_k - (1/L) * grad)
-```
-Convergence rate: O(1/k^2) in objective gap — quadratically faster than ISTA.
+### FISTA (O(1/k²) convergence)
 
-### Backtracking Line Search
+Nesterov momentum acceleration applied to ISTA:
 
-Finds the smallest L satisfying the descent condition:
 ```
-f(beta_new) <= f(beta) + grad^T (beta_new - beta) + (L/2)||beta_new - beta||^2
+t_{k+1}  = (1 + √(1 + 4 t_k²)) / 2
+y_k      = β_k + ((t_k − 1) / t_{k+1}) · (β_k − β_{k−1})
+grad     = −(1/n) Xᵀ(y − X y_k)
+β_{k+1}  = prox_{(1/L)·λΩ}(y_k − (1/L) · grad)
 ```
-where `f` is the smooth loss only. Updates `L <- L * eta` (default `eta=1.5`) until satisfied.
+
+The extrapolated point `y_k` is used for both the gradient and the proximal
+step.  The momentum coefficient `(t_k − 1) / t_{k+1}` grows monotonically
+toward 1, driving progressively stronger extrapolation as iterates converge.
+
+### Backtracking Line Search (`line_search.py`)
+
+Avoids the cost of computing `σ_max(XᵀX)` at each iteration by starting from
+the previous `L` and multiplying by `η` (default `η = 1.5`) until the
+sufficient-descent condition is satisfied:
+
+```
+f(β_new) ≤ f(β) + ∇f(β)ᵀ(β_new − β) + (L/2) ‖β_new − β‖²
+```
+
+where `f` denotes the smooth data-fit term only; the proximal step handles the
+regularization.
 
 ---
 
@@ -142,19 +157,40 @@ where `f` is the smooth loss only. Updates `L <- L * eta` (default `eta=1.5`) un
 
 ```
 solvers/
-  __init__.py      exports ISTA, FISTA, prox_*, *_duality_gap
-  proximal.py      prox operators for Ridge, Lasso, Elastic Net
-  ista.py          ISTA solver class
-  fista.py         FISTA solver class (inherits ISTA)
-  line_search.py   backtracking line search
-  duality_gap.py   Fenchel duality gaps
-  README.md        this file
+  __init__.py      Public API: ISTA, FISTA, prox_*, *_duality_gap
+  proximal.py      Closed-form proximal operators (Ridge, Lasso, Elastic Net)
+  ista.py          ISTA solver class with convergence tracking
+  fista.py         FISTA solver class (inherits ISTA, overrides fit())
+  line_search.py   Backtracking line search for adaptive step-size selection
+  duality_gap.py   Fenchel duality gap certificates (Lasso, Elastic Net)
+  README.md        This document
 
 experiments/
-  synthetic.py     hard dataset generators
-  convergence.py   ISTA vs FISTA convergence plots
-  plots/           saved figures
+  synthetic.py     Synthetic benchmark data generators
+  data_pipeline.py DataCo supply-chain preprocessing pipeline
+  evaluation.py    CV, regularization path, bias-variance, timing utilities
+  convergence.py   ISTA vs FISTA convergence figure generator
+  plots/           Output directory for convergence figures (git-ignored)
 
 tests/
-  test_all.py      sklearn validation suite
+  test_all.py      Correctness and property validation against scikit-learn
 ```
+
+---
+
+## References
+
+Beck, A. and Teboulle, M. (2009). A Fast Iterative Shrinkage-Thresholding Algorithm
+  for Linear Inverse Problems. *SIAM Journal on Imaging Sciences*, 2(1), 183–202.
+
+Nesterov, Y. (1983). A method of solving a convex programming problem with convergence
+  rate O(1/k²). *Soviet Mathematics Doklady*, 27(2), 372–376.
+
+Parikh, N. and Boyd, S. (2014). Proximal Algorithms. *Foundations and Trends in
+  Optimization*, 1(3), 127–239.
+
+Tibshirani, R. (1996). Regression shrinkage and selection via the Lasso. *Journal of
+  the Royal Statistical Society: Series B*, 58(1), 267–288.
+
+Zou, H. and Hastie, T. (2005). Regularization and variable selection via the Elastic
+  Net. *Journal of the Royal Statistical Society: Series B*, 67(2), 301–320.

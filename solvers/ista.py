@@ -1,11 +1,26 @@
 """
 ISTA (Iterative Shrinkage-Thresholding Algorithm) for regularized regression.
 
-Minimizes F(β) = (1/2n)||y - Xβ||² + λΩ(β)
-using the proximal gradient iteration:
-    β_{k+1} = prox_{(1/L)Ω}(β_k - (1/L) ∇L(β_k))
+Implements proximal gradient descent for the composite convex objective
 
-where ∇L(β) = -(1/n) Xᵀ(y - Xβ)  and  L = σ_max(XᵀX) / n.
+    F(β) = (1/2n) ‖y − Xβ‖² + λ Ω(β)
+
+via the fixed-point iteration
+
+    β_{k+1} = prox_{(1/L)·λΩ}( β_k − (1/L) ∇f(β_k) )
+
+where ∇f(β) = −(1/n) Xᵀ(y − Xβ) is the gradient of the smooth data-fit term
+and L = σ_max(XᵀX)/n is the Lipschitz constant of ∇f.  An optional
+backtracking line search adaptively estimates L at each iteration, yielding
+larger effective step sizes on well-conditioned problems.
+
+Convergence rate: O(1/k) in the objective gap F(β_k) − F(β*).
+
+References
+----------
+Beck, A. and Teboulle, M. (2009). A Fast Iterative Shrinkage-Thresholding
+  Algorithm for Linear Inverse Problems. SIAM Journal on Imaging Sciences,
+  2(1), 183–202.
 """
 
 import numpy as np

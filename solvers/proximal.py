@@ -1,8 +1,21 @@
 """
-Proximal operators for Ridge, Lasso, and Elastic Net regularization.
+Closed-form proximal operators for Ridge, Lasso, and Elastic Net regularization.
 
-All operators correspond to the objective:
-    F(β) = (1/2n)||y - Xβ||² + λΩ(β)
+Each operator solves the proximal subproblem
+
+    prox_{t·g}(v) = argmin_u { (1/2)‖u − v‖² + t·g(u) }
+
+analytically, enabling exact proximal gradient steps without inner optimization.
+All three operators are derived from the convex composite objective
+
+    F(β) = (1/2n) ‖y − Xβ‖² + λ Ω(β)
+
+where Ω(β) is the regularizer and t = 1/L is the gradient step size.
+
+References
+----------
+Parikh, N. and Boyd, S. (2014). Proximal Algorithms. Foundations and Trends in
+  Optimization, 1(3), 127–239.
 """
 
 import numpy as np

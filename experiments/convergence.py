@@ -1,12 +1,30 @@
 """
-Convergence plots comparing ISTA vs FISTA on synthetic datasets.
+Empirical convergence analysis: ISTA vs FISTA on synthetic benchmarks.
 
-Generates 9 plots (3 datasets × 3 models):
-  - Objective value vs iteration (log scale)
-  - Duality gap vs iteration (log scale, Lasso/ElasticNet only)
-  - Reference lines: O(1/k) and O(1/k²)
+Generates convergence plots that reproduce the theoretical rates:
+  - ISTA achieves O(1/k) in the primal objective gap
+  - FISTA achieves O(1/k²) via Nesterov momentum (Beck & Teboulle, 2009)
 
-Output: experiments/plots/convergence_{model}_{dataset}.png
+For each combination of (dataset, regularizer), two panels are produced:
+
+  1. Objective value F(β_k) vs iteration k on a semi-log scale, with O(1/k)
+     and O(1/k²) reference curves anchored to the ISTA initial value.
+
+  2. Fenchel duality gap vs iteration k (Lasso and Elastic Net only), providing
+     a certified convergence certificate independent of the unknown optimum.
+
+Output
+------
+Figures are saved to experiments/plots/ as
+  convergence_{model}_{dataset}.png   (120 dpi, tight layout)
+
+covering all 9 combinations: 3 datasets × {ridge, lasso, elasticnet}.
+
+References
+----------
+Beck, A. and Teboulle, M. (2009). A Fast Iterative Shrinkage-Thresholding
+  Algorithm for Linear Inverse Problems. SIAM Journal on Imaging Sciences,
+  2(1), 183–202.
 """
 
 import os

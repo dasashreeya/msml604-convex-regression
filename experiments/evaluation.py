@@ -1,8 +1,29 @@
 """
 Evaluation utilities for regularized regression experiments.
 
-Covers: cross-validation scoring, regularization paths, bias-variance sweeps,
-model comparison tables, solver timing, and plot helpers.
+Provides a self-contained suite of functions for assessing solver quality on
+both synthetic and real-world data:
+
+- **Cross-validation** (`cv_score`, `lambda_cv_search`): walk-forward (expanding
+  window) CV that respects the temporal ordering of supply-chain records,
+  preventing future-data leakage during hyperparameter selection.
+
+- **Regularization path** (`regularization_path`): coefficient trajectories
+  across a data-driven λ grid, enabling visual inspection of variable selection.
+
+- **Bias–variance decomposition** (`bias_variance_sweep`): train/test RMSE as a
+  function of regularization strength, isolating underfitting from overfitting.
+
+- **Model comparison** (`model_comparison_table`): tabular cross-model benchmarks
+  using a unified evaluation protocol.
+
+- **Solver timing** (`time_solver`): wall-clock comparison of ISTA vs FISTA to
+  complement the theoretical convergence analysis.
+
+- **Plot helpers**: publication-ready matplotlib figures for all of the above.
+
+All standardization is fitted exclusively on training folds; test folds are
+transformed using training-fold statistics to prevent information leakage.
 """
 
 import os

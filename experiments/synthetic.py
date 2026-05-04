@@ -1,8 +1,31 @@
 """
-Hard synthetic datasets for stress-testing regularized regression solvers.
+Synthetic benchmark datasets for evaluating regularized regression solvers.
 
-All datasets return (X, y, beta_true) with X standardized to zero mean,
-unit variance per column.
+Three structured data-generating processes are provided, each designed to expose
+a distinct difficulty regime encountered in real-world regression problems:
+
+1. **High Correlation** — features share a latent signal, inducing near-linear
+   dependence among columns of X.  Tests robustness under multicollinearity,
+   where Elastic Net and Ridge are theoretically preferable to Lasso.
+
+2. **High Dimensional** (p ≫ n) — a sparse true coefficient vector embedded in
+   an ambient space far exceeding the sample size.  The canonical regime for
+   compressed sensing and Lasso theory (Donoho, 2006; Candès & Tao, 2007).
+
+3. **Near Singular** — X is constructed via SVD with a prescribed condition
+   number, producing a design matrix whose smallest singular values approach
+   zero.  Tests numerical stability of gradient computations and step-size
+   estimation.
+
+All datasets return (X, y, β_true) with X standardized to zero mean and unit
+variance per column, matching the convention expected by the ISTA/FISTA solvers.
+
+References
+----------
+Donoho, D.L. (2006). Compressed sensing. IEEE Transactions on Information
+  Theory, 52(4), 1289–1306.
+Zou, H. and Hastie, T. (2005). Regularization and variable selection via the
+  Elastic Net. Journal of the Royal Statistical Society: Series B, 67(2), 301–320.
 """
 
 import numpy as np

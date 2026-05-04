@@ -1,8 +1,25 @@
 """
-Backtracking line search for ISTA/FISTA.
+Backtracking line search for adaptive step-size selection in ISTA/FISTA.
 
-Finds the smallest L (largest step size 1/L) satisfying the quadratic
-upper bound on the smooth loss.
+Finds the smallest Lipschitz estimate L (equivalently the largest step size
+1/L) satisfying the sufficient descent condition
+
+    f(β_new) ≤ Q_L(β_new, β)
+
+where Q_L is the quadratic upper bound on the smooth loss:
+
+    Q_L(u, β) = f(β) + ∇f(β)ᵀ(u − β) + (L/2) ‖u − β‖²
+
+Starting from an initial estimate L_init, the algorithm multiplies L by a
+factor η > 1 (default η = 1.5) until the condition is satisfied.  This
+amortized strategy avoids paying the full cost of computing σ_max(XᵀX) at
+every iteration while guaranteeing sufficient decrease.
+
+References
+----------
+Beck, A. and Teboulle, M. (2009). A Fast Iterative Shrinkage-Thresholding
+  Algorithm for Linear Inverse Problems. SIAM Journal on Imaging Sciences,
+  2(1), 183–202.  (Algorithm 2 — Backtracking ISTA/FISTA)
 """
 
 import numpy as np

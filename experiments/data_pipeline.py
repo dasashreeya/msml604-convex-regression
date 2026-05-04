@@ -2,8 +2,16 @@
 Data loading, feature engineering, and design matrix construction
 for the DataCo Smart Supply Chain regression task.
 
-Dataset: DataCo Smart Supply Chain for Big Data Analysis (Kaggle)
-https://www.kaggle.com/datasets/shashwatwork/dataco-smart-supply-chain-for-big-data-analysis
+This module prepares the real-world evaluation dataset used in the empirical
+experiments of Section 4.  The target is order-item sales revenue (USD), and
+the design matrix is constructed from operational features that are plausibly
+available at order-placement time, with strict exclusion of post-hoc outcome
+variables to prevent target leakage.
+
+Dataset
+-------
+DataCo Smart Supply Chain for Big Data Analysis (Konstantinos Konstantinou, Kaggle).
+URL: https://www.kaggle.com/datasets/shashwatwork/dataco-smart-supply-chain-for-big-data-analysis
 
 Target: Sales  — order-item revenue in USD
 
