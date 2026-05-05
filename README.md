@@ -67,6 +67,7 @@ msml604-convex-regression/
 ├── tests/
 │   └── test_all.py             Correctness and property validation suite
 │
+├── dashboard.py                Interactive Streamlit dashboard
 └── README.md                   This file
 ```
 
@@ -96,6 +97,66 @@ pip install numpy scipy pandas matplotlib scikit-learn jupyter
 ```
 
 No additional build steps are required — the solver library is pure Python/NumPy.
+
+To run the interactive dashboard, install one additional dependency:
+
+```bash
+pip install streamlit
+```
+
+---
+
+## Interactive Dashboard
+
+The repository includes a Streamlit dashboard ([dashboard.py](dashboard.py)) for
+interactive exploration of the solvers without touching the notebooks.
+
+### Launch
+
+```bash
+streamlit run dashboard.py
+```
+
+The app opens automatically at `http://localhost:8501`.
+
+### Controls
+
+| Control | Location | What it does |
+|---------|----------|--------------|
+| **Dataset** | Sidebar dropdown | Switch between DataCo Supply Chain (real) and three synthetic stress-tests: High Correlation (ρ=0.95), High Dimensional (p=500, s=10), Near Singular (κ=10⁶) |
+| **Model** | Sidebar dropdown | Ridge (L2), Lasso (L1), or Elastic Net (L1+L2) |
+| **log₁₀(λ) slider** | Sidebar | Drag left (−3) for low regularization, right (+1) for high; the exact λ value is shown below the slider |
+| **Elastic Net α** | Sidebar (EN only) | Controls the L1/L2 mix; α=1.0 is pure Lasso, α=0.0 is pure Ridge |
+| **Solver** | Sidebar radio | FISTA, ISTA, or Both overlaid on the convergence plots |
+| **Max iterations** | Sidebar slider | Upper bound on solver iterations (50–2000) |
+| **Convergence tolerance** | Sidebar dropdown | Duality-gap stopping threshold (10⁻³ to 10⁻⁸) |
+| **Top-k labels** | Sidebar slider | Number of features labeled in the coefficient bar chart |
+
+### What updates live
+
+**Metric cards (top row)** — Test RMSE, Train RMSE, Test R², Nonzero coefs / p, and
+Iterations to convergence recompute every time any control changes.
+
+**Coefficient bar chart (left)** — Blue bars = top-k features by magnitude; grey bars
+= zeroed or near-zero coefficients. On synthetic datasets an orange step line shows
+the ground-truth β for visual comparison.
+
+**Convergence curves (right)** — Two sub-panels:
+- `F(βₖ) − F*` on a semilogy scale with O(1/k) and O(1/k²) reference dashed lines
+- Fenchel duality gap closing toward zero (Lasso and Elastic Net only)
+
+When Solver = **Both**, FISTA (blue) and ISTA (orange) are overlaid so the O(1/k²)
+vs O(1/k) speedup is directly visible.
+
+**Regularization Path expander (bottom)** — Click to expand a full 40-point λ path.
+The orange vertical dashed line tracks the current slider position in real time.
+
+### Suggested walkthrough
+
+1. Start with **DataCo + Lasso**, drag λ from −2 to −0.5 and watch the "Nonzero coefs" card drop as features are zeroed out.
+2. Open the **Regularization Path** expander and drag λ — the dashed line moves across the path showing which features enter first.
+3. Switch to **Synthetic — High Correlation + Both solvers** and zoom into the convergence panel to see FISTA track O(1/k²) while ISTA tracks O(1/k).
+4. Switch to **Elastic Net**, set α=0.5, λ≈1.23 — the metric cards show the best real-data result: Test RMSE ≈ 41.1 USD, R² ≈ 0.93, 24/39 nonzero coefficients.
 
 ---
 

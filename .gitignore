@@ -1,13 +1,4 @@
 __pycache__/
-*.py[cod]
-*.pyo
 .DS_Store
-*.egg-info/
-dist/
-build/
-.env
-*.log
-experiments/plots/
-.claude/
 notebooks/.ipynb_checkpoints/
 
