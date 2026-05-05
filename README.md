@@ -154,9 +154,9 @@ The orange vertical dashed line tracks the current slider position in real time.
 ### Suggested walkthrough
 
 1. Start with **DataCo + Lasso**, drag λ from −2 to −0.5 and watch the "Nonzero coefs" card drop as features are zeroed out.
-2. Open the **Regularization Path** expander and drag λ — the dashed line moves across the path showing which features enter first.
+2. Open the **Regularization Path** expander and drag λ — the dashed line moves across the path showing which features enter first (`Order Item Product Price` and `Order Item Discount` enter earliest, confirming they are the strongest predictors of Sales).
 3. Switch to **Synthetic — High Correlation + Both solvers** and zoom into the convergence panel to see FISTA track O(1/k²) while ISTA tracks O(1/k).
-4. Switch to **Elastic Net**, set α=0.5, λ≈1.23 — the metric cards show the best real-data result: Test RMSE ≈ 41.1 USD, R² ≈ 0.93, 24/39 nonzero coefficients.
+4. Return to **DataCo + Lasso**, set log₁₀(λ) ≈ −1.1 (λ≈0.078) — the metric cards show the best real-data result: Test RMSE ≈ $30.0, R² ≈ 0.976, 16/39 nonzero coefficients. The naive baseline (predict train mean) has RMSE ≈ $195.25, so the model reduces error by 85%.
 
 ---
 
@@ -299,6 +299,46 @@ via the squared full-gradient norm.
 | Walk-forward CV | Respects temporal ordering; prevents future-data leakage |
 | Duality-gap stopping | Certified optimality without knowledge of F(β*) |
 | FISTA inherits ISTA | Single code path for all proximal/gap/objective logic |
+
+---
+
+## Key Results (DataCo Supply Chain)
+
+All numbers are from `notebooks/02_real_experiments.ipynb` on the held-out chronological
+test set (last 20% of 180,517 orders, ~36,103 rows).  Naive baseline (predict training
+mean $197.00 for every order) has RMSE = **$195.25**.
+
+### Held-out test performance
+
+| Model | Test RMSE (USD) | Test MAE (USD) | Test R² | Nonzero coefs / 39 | Iterations |
+|-------|:-:|:-:|:-:|:-:|:-:|
+| **Lasso** | **$29.96** | **$16.54** | **0.9757** | **16** | 785 |
+| Elastic Net | $41.35 | $23.48 | 0.9538 | 18 | 105 |
+| Ridge | $54.75 | $31.20 | 0.9189 | 34 | 76 |
+
+Best model: **Lasso** at λ = 0.0779 (data-adaptive grid minimum).  16 of 39 features
+are exactly zero; the two dominant predictors are `Order Item Product Price` and
+`Order Item Discount`.
+
+### Walk-forward CV performance (5 folds, training set only)
+
+| Model | CV RMSE mean (USD) | CV RMSE std |
+|-------|:-:|:-:|
+| **Lasso** | **$25.68** | $0.15 |
+| Elastic Net | $29.33 | $0.14 |
+| Ridge | $34.15 | $0.14 |
+
+### ISTA vs FISTA on real data (500 iterations, 3-run average)
+
+| Model | ISTA time (s) | FISTA time (s) | Wall-clock speedup | ISTA iters | FISTA iters |
+|-------|:-:|:-:|:-:|:-:|:-:|
+| Ridge | 0.818 | 0.612 | **1.34×** | 124 | 97 |
+| Lasso | 3.944 | 3.930 | 1.00× | 500 | 500 |
+| Elastic Net | 1.449 | 0.993 | **1.46×** | 200 | 144 |
+
+Lasso hits `max_iter=500` for both solvers at the chosen λ; higher iteration budgets
+show the expected FISTA advantage.  Ridge and Elastic Net show 1.3–1.5× speedup even
+at this modest problem scale (n=144,414, p=39).
 
 ---
 
